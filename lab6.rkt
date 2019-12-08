@@ -201,8 +201,203 @@
 (multiply '((1 2 3) (3 2 1) (1 2 3)) '((4 5 6) (6 5 4) (4 6 5)))
 
 ;2.9
-;???
+(define (every? p l)
+  (or (null? l)
+      (and (p (car l))
+           (every? p (cdr l)))))
 
+(define (any? p l)
+  (and (not (null? l))
+       (or (p (car l))
+           (any? p (cdr l)))))
 
+(define (count-columns matrix)
+  (define (subset? column row)
+    (every? (lambda (x)
+              (member x row))
+            column))
 
+  (define (subset-of-row? column)
+    (any? (lambda (row)
+            (subset? column row))
+          matrix))
 
+  (length (filter subset-of-row?
+                  (transpose matrix))))
+
+;3
+(define (tree? t)
+  (or (null? t)
+      (and (list? t)
+           (= (length t) 3)
+           (tree? (cadr t))
+           (tree? (caddr t)))))
+
+(define empty-tree '())
+(define (make-tree root left right)
+  (list root left right))
+(define (leaf root)
+  (make-tree root empty-tree empty-tree))
+
+(define root-tree car)
+(define left-tree cadr)
+(define right-tree caddr)
+(define empty-tree? null?)
+(define (leaf? tree)
+  (and (not (empty-tree? tree))
+       (empty-tree? (left-tree tree))
+       (empty-tree? (right-tree tree))))
+
+(define tree
+  (make-tree 1
+             (make-tree 2
+                        (leaf 4)
+                        (leaf 5))
+             (leaf 3)))
+
+;3.1
+(define (pre-order tree)
+  (if (empty-tree? tree)
+      empty-tree
+      (cons (root-tree tree)
+            (append (pre-order (left-tree tree))
+                    (pre-order (right-tree tree))))))
+
+(define (in-order tree)
+  (if (empty-tree? tree)
+      empty-tree
+      (append (in-order (left-tree tree))
+              (list (root-tree tree))
+              (in-order (right-tree tree)))))
+
+(define (post-order tree)
+  (if (empty-tree? tree)
+      empty-tree
+      (append (post-order (left-tree tree))
+              (post-order (right-tree tree))
+              (list (root-tree tree)))))
+
+(pre-order tree); => '(1 2 4 5 3))
+(in-order tree); => '(4 2 5 1 3))
+(post-order tree); => '(4 5 2 3 1))
+
+;3.2
+(define (level n tree)
+  (cond ((empty-tree? tree) '())
+        ((= n 0) (list (root-tree tree)))
+        (else (append (level (- n 1) (left-tree tree))
+                      (level (- n 1) (right-tree tree))))))
+
+(level 0 (leaf 42)); => '(42))
+(level 0 tree); => '(1))
+(level 1 tree); => '(2 3))
+(level 2 tree); => '(4 5))
+
+;3.3
+(define (count-leaves tree)
+  (cond ((empty-tree? tree) 0)
+        ((leaf? tree) 1)
+        (else (+ (count-leaves (right-tree tree))
+                 (count-leaves (left-tree tree))))))
+
+(count-leaves empty-tree); => 0)
+(count-leaves (leaf 1)); => 1)
+(count-leaves tree); => 3)
+
+;3.4
+(define (map-tree fn tree)
+  (if (empty-tree? tree)
+      empty-tree
+      (make-tree (fn (root-tree tree))
+                 (map-tree fn (left-tree tree))
+                 (map-tree fn (right-tree tree)))))
+
+(define squared-tree
+  (make-tree 1
+             (make-tree 4
+                        (leaf 16)
+                        (leaf 25))
+             (leaf 9)))
+
+(define cubed-tree
+  (make-tree 1
+             (make-tree 8
+                        (leaf 64)
+                        (leaf 125))
+             (leaf 27)))
+
+(define (cube x) (* x x x))
+
+(map-tree square empty-tree); => empty-tree)
+(map-tree square (leaf 4)); => (leaf 16))
+(map-tree square tree); => squared-tree)
+(map-tree cube tree); => cubed-tree)
+
+;3.5
+(define (binary-heap? tree)
+  (or (empty-tree? tree)
+      (and (or (empty-tree? (left-tree tree))
+               (< (root-tree tree)
+                  (root-tree (left-tree tree))))
+           (or (empty-tree? (right-tree tree))
+               (< (root-tree tree)
+                  (root-tree (right-tree tree))))
+           (binary-heap? (left-tree tree))
+           (binary-heap? (right-tree tree)))))
+
+(define binary-heap
+  (make-tree 1
+             (make-tree 2
+                        (leaf 4)
+                        (leaf 5))
+             (leaf 42)))
+
+(define !binary-heap
+  (make-tree 1
+             (make-tree 2
+                        (leaf 0)
+                        (leaf 5))
+             (leaf 3)))
+
+(binary-heap? empty-tree); => #t)
+(binary-heap? (leaf 42)); => #t)
+(binary-heap? binary-heap); => #t)
+(binary-heap? !binary-heap); => #f)
+
+;3.6
+(define (height tree)
+  (if (empty-tree? tree)
+      0
+      (+ 1
+         (max (height (left-tree tree))
+              (height (right-tree tree))))))
+
+(define (balanced? tree)
+  (or (empty-tree? tree)
+      (and (< (abs (- (height (left-tree tree))
+                 (height (right-tree tree))))
+              2)
+           (balanced? (left-tree tree))
+           (balanced? (right-tree tree)))))
+
+(define balanced-tree
+  (make-tree 1
+             (make-tree 2
+                        empty-tree
+                        (leaf 5))
+             (leaf 42)))
+
+(define !balanced-tree
+  (make-tree 1
+             (make-tree 2
+                        (make-tree 42
+                                   (leaf 1337)
+                                   empty-tree)
+                        (leaf 5))
+             (leaf 3)))
+
+(balanced? empty-tree); => #t)
+(balanced? (leaf 42)); => #t)
+(balanced? balanced-tree); => #t)
+(balanced? !balanced-tree); => #f)
+           
