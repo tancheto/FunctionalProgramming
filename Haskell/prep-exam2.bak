@@ -1,0 +1,14 @@
+#lang racket
+;2016-02
+
+(define (unique l)
+  (if (null? l)
+      '()
+      (cons (car l) (unique (filter (lambda (x)
+                                      (not (equal? x (car l))))
+                                    (cdr l))))))
+
+(define (histogram l)
+  (if (null? l)
+      '()
+      ())
